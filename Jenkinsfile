@@ -1,41 +1,51 @@
 pipeline {
     agent any
 
+    environment {
+        PYTHON = 'python3'
+    }
+
     stages {
-        stage('Install Deps') {
+        stage('Install Dependencies') {
             steps {
-                githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+                script {
+                    githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+                }
                 sh '''
-                    python3 -m pip install --upgrade pip
-                    if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+                    ${PYTHON} -m pip install --upgrade pip
+                    if [ -f requirements.txt ]; then ${PYTHON} -m pip install -r requirements.txt; fi
                 '''
-                githubNotify context: 'Build', status: 'SUCCESS', description: 'Dependencies installed.'
             }
         }
 
         stage('Run Default Tests') {
             steps {
-                githubNotify context: 'Build', status: 'PENDING', description: 'Running default test suite...'
-                sh 'python3 run_tests.py --test_suite regression --env staging'
+                script {
+                    githubNotify context: 'Build', status: 'PENDING', description: 'Running default tests...'
+                    def status = sh(script: "${PYTHON} run_tests.py --test_suite regression --env staging", returnStatus: true)
+                    if (status == 0) {
+                        githubNotify context: 'Build', status: 'SUCCESS', description: 'Default tests passed.'
+                    } else {
+                        githubNotify context: 'Build', status: 'FAILURE', description: 'Default tests failed.'
+                        error("Default tests failed")
+                    }
+                }
             }
         }
 
         stage('Run ATP Tests') {
             steps {
-                githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
-                sh 'python3 atp_test_runner.py --mode full --env prod'
+                script {
+                    githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
+                    def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full --env prod", returnStatus: true)
+                    if (atpStatus == 0) {
+                        githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed.'
+                    } else {
+                        githubNotify context: 'ATP Tests', status: 'FAILURE', description: 'ATP tests failed.'
+                        error("ATP tests failed")
+                    }
+                }
             }
-        }
-    }
-
-    post {
-        success {
-            githubNotify context: 'Build', status: 'SUCCESS', description: 'Default tests passed'
-            githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed'
-        }
-        failure {
-            githubNotify context: 'Build', status: 'FAILURE', description: 'One or more tests failed'
-            githubNotify context: 'ATP Tests', status: 'FAILURE', description: 'ATP test failure'
         }
     }
 }
