@@ -116,8 +116,11 @@ pipeline {
                         }
                     }
                 }
+            }
+        }
+    }
 
-                post {
+                    post {
                         success {
                             script {
                                 echo "✅ Final build status: SUCCESS"
@@ -131,8 +134,4 @@ pipeline {
                             }
                         }
                     }
-
-            }
-        }
-    }
 }
