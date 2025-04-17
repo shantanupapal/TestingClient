@@ -1,10 +1,8 @@
 pipeline {
     agent any
+
     stages {
-        stage('Checkout') {
-            steps { checkout scm }
-        }
-        stage('Install Deps') {
+        stage('Install Dependencies') {
             steps {
                 sh '''
                     python3 -m pip install --upgrade pip
@@ -12,10 +10,20 @@ pipeline {
                 '''
             }
         }
+
         stage('Run Tests') {
             steps {
                 sh 'python3 run_tests.py --test_suite regression --env staging'
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Build passed"
+        }
+        failure {
+            echo "❌ Build failed"
         }
     }
 }
