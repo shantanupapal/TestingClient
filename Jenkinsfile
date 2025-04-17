@@ -9,7 +9,13 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+                    try {
+                        if (env.CHANGE_ID) {
+                            githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+                        }
+                    } catch (err) {
+                        echo "WARNING: githubNotify failed for Install step: ${err.getMessage()}"
+                    }
 
                     def depStatus = sh(script: '''
                         which python3 || true
@@ -18,9 +24,21 @@ pipeline {
                     ''', returnStatus: true)
 
                     if (depStatus == 0) {
-                        githubNotify context: 'Build', status: 'SUCCESS', description: 'Dependencies installed.'
+                        try {
+                            if (env.CHANGE_ID) {
+                                githubNotify context: 'Build', status: 'SUCCESS', description: 'Dependencies installed.'
+                            }
+                        } catch (err) {
+                            echo "WARNING: githubNotify failed: ${err.getMessage()}"
+                        }
                     } else {
-                        githubNotify context: 'Build', status: 'FAILURE', description: 'Dependency install failed.'
+                        try {
+                            if (env.CHANGE_ID) {
+                                githubNotify context: 'Build', status: 'FAILURE', description: 'Dependency install failed.'
+                            }
+                        } catch (err) {
+                            echo "WARNING: githubNotify failed: ${err.getMessage()}"
+                        }
                         echo "WARNING: Dependency installation failed, continuing..."
                     }
                 }
@@ -32,14 +50,32 @@ pipeline {
                 stage('Default Tests') {
                     steps {
                         script {
-                            githubNotify context: 'Build', status: 'PENDING', description: 'Running default tests...'
+                            try {
+                                if (env.CHANGE_ID) {
+                                    githubNotify context: 'Build', status: 'PENDING', description: 'Running default tests...'
+                                }
+                            } catch (err) {
+                                echo "WARNING: githubNotify failed to send pending: ${err.getMessage()}"
+                            }
 
                             def status = sh(script: "${PYTHON} run_tests.py --test_suite regression --env staging", returnStatus: true)
 
                             if (status == 0) {
-                                githubNotify context: 'Build', status: 'SUCCESS', description: 'Default tests passed.'
+                                try {
+                                    if (env.CHANGE_ID) {
+                                        githubNotify context: 'Build', status: 'SUCCESS', description: 'Default tests passed.'
+                                    }
+                                } catch (err) {
+                                    echo "WARNING: githubNotify failed to send success: ${err.getMessage()}"
+                                }
                             } else {
-                                githubNotify context: 'Build', status: 'FAILURE', description: 'Default tests failed.'
+                                try {
+                                    if (env.CHANGE_ID) {
+                                        githubNotify context: 'Build', status: 'FAILURE', description: 'Default tests failed.'
+                                    }
+                                } catch (err) {
+                                    echo "WARNING: githubNotify failed to send failure: ${err.getMessage()}"
+                                }
                                 error("Default tests failed")
                             }
                         }
@@ -49,14 +85,32 @@ pipeline {
                 stage('ATP Tests') {
                     steps {
                         script {
-                            githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
+                            try {
+                                if (env.CHANGE_ID) {
+                                    githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
+                                }
+                            } catch (err) {
+                                echo "WARNING: githubNotify failed to send pending: ${err.getMessage()}"
+                            }
 
                             def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full", returnStatus: true)
 
                             if (atpStatus == 0) {
-                                githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed.'
+                                try {
+                                    if (env.CHANGE_ID) {
+                                        githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed.'
+                                    }
+                                } catch (err) {
+                                    echo "WARNING: githubNotify failed to send success: ${err.getMessage()}"
+                                }
                             } else {
-                                githubNotify context: 'ATP Tests', status: 'FAILURE', description: 'ATP tests failed.'
+                                try {
+                                    if (env.CHANGE_ID) {
+                                        githubNotify context: 'ATP Tests', status: 'FAILURE', description: 'ATP tests failed.'
+                                    }
+                                } catch (err) {
+                                    echo "WARNING: githubNotify failed to send failure: ${err.getMessage()}"
+                                }
                                 error("ATP tests failed")
                             }
                         }
@@ -65,4 +119,19 @@ pipeline {
             }
         }
     }
+
+                    post {
+                        success {
+                            script {
+                                echo "✅ Final build status: SUCCESS"
+                                currentBuild.result = 'SUCCESS'
+                            }
+                        }
+                        failure {
+                            script {
+                                echo "❌ Final build status: FAILURE"
+                                currentBuild.result = 'FAILURE'
+                            }
+                        }
+                    }
 }
