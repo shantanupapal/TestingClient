@@ -116,6 +116,22 @@ pipeline {
                         }
                     }
                 }
+
+                post {
+                        success {
+                            script {
+                                echo "✅ Final build status: SUCCESS"
+                                currentBuild.result = 'SUCCESS'
+                            }
+                        }
+                        failure {
+                            script {
+                                echo "❌ Final build status: FAILURE"
+                                currentBuild.result = 'FAILURE'
+                            }
+                        }
+                    }
+
             }
         }
     }
