@@ -26,12 +26,13 @@ pipeline {
         stage('Run Default Tests') {
             steps {
                 script {
-                    setGitHubPullRequestStatus context: 'Build', status: 'PENDING', message: 'Running default tests...'
+                    setGitHubPullRequestStatus context: 'Build', state: 'PENDING', message: 'Running default tests...'
                     def status = sh(script: "${PYTHON} run_tests.py --test_suite regression --env staging", returnStatus: true)
+
                     if (status == 0) {
-                        setGitHubPullRequestStatus context: 'Build', status: 'SUCCESS', message: 'Default tests passed.'
+                        setGitHubPullRequestStatus context: 'Build', state: 'SUCCESS', message: 'Default tests passed.'
                     } else {
-                        setGitHubPullRequestStatus context: 'Build', status: 'FAILURE', message: 'Default tests failed.'
+                        setGitHubPullRequestStatus context: 'Build', state: 'FAILURE', message: 'Default tests failed.'
                         error("Default tests failed")
                     }
                 }
@@ -41,14 +42,14 @@ pipeline {
         stage('Run ATP Tests') {
             steps {
                 script {
-                    setGitHubPullRequestStatus context: 'ATP Tests', status: 'PENDING', message: 'Running ATP tests...'
+                    setGitHubPullRequestStatus context: 'ATP Tests', state: 'PENDING', message: 'Running ATP tests...'
 
                     def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full", returnStatus: true)
 
                     if (atpStatus == 0) {
-                        setGitHubPullRequestStatus context: 'ATP Tests', status: 'SUCCESS', message: 'ATP tests passed.'
+                        setGitHubPullRequestStatus context: 'ATP Tests', state: 'SUCCESS', message: 'ATP tests passed.'
                     } else {
-                        setGitHubPullRequestStatus context: 'ATP Tests', status: 'FAILURE', message: 'ATP tests failed.'
+                        setGitHubPullRequestStatus context: 'ATP Tests', state: 'FAILURE', message: 'ATP tests failed.'
                         error("ATP tests failed")
                     }
                 }
