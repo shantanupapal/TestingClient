@@ -36,8 +36,13 @@ pipeline {
         stage('Run ATP Tests') {
             steps {
                 script {
+                    echo "Sending ATP Tests check: pending"
                     githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
-                    def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full --env prod", returnStatus: true)
+                    
+                    def atpStatus = sh(script: "python3 atp_test_runner.py --mode full", returnStatus: true)
+        
+                    echo "ATP status: ${atpStatus}"
+                    
                     if (atpStatus == 0) {
                         githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed.'
                     } else {
