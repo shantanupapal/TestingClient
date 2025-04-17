@@ -10,11 +10,22 @@ pipeline {
             steps {
                 script {
                     githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+
+                    def depStatus = sh(
+                        script: '''
+                            ${PYTHON} -m pip install --upgrade pip
+                            if [ -f requirements.txt ]; then ${PYTHON} -m pip install -r requirements.txt; fi
+                        ''',
+                        returnStatus: true
+                    )
+
+                    if (depStatus == 0) {
+                        githubNotify context: 'Build', status: 'SUCCESS', description: 'Dependencies installed.'
+                    } else {
+                        githubNotify context: 'Build', status: 'FAILURE', description: 'Dependency install failed.'
+                        echo "[WARNING] Dependency installation failed, but continuing..."
+                    }
                 }
-                sh '''
-                    ${PYTHON} -m pip install --upgrade pip
-                    if [ -f requirements.txt ]; then ${PYTHON} -m pip install -r requirements.txt; fi
-                '''
             }
         }
 
@@ -39,7 +50,7 @@ pipeline {
                     echo "Sending ATP Tests check: pending"
                     githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
                     
-                    def atpStatus = sh(script: "python3 atp_test_runner.py --mode full", returnStatus: true)
+                    def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full", returnStatus: true)
         
                     echo "ATP status: ${atpStatus}"
                     
