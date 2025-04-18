@@ -33,13 +33,13 @@ pipeline {
                         script {
                             def testPassed = true
                             try {
-                                sh "${PYTHON} run_tests.py --test_suite regression --env staging"
+                                sh "${env.PYTHON} run_tests.py --test_suite regression --env staging"
                             } catch (err) {
                                 testPassed = false
                                 throw err
                             } finally {
-                                publishChecks name: 'Default Tests',
-                                              conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
+                                echo "Default Tests: ${testPassed ? 'PASSED' : 'FAILED'}"
+                                // Optional: you can add curl-based check here too
                             }
                         }
                     }
@@ -51,18 +51,18 @@ pipeline {
                             def testPassed = true
                             try {
                                 echo "Running ATP tests from atp_test_runner.py"
-                                sh """
-                                    ${env.PYTHON} atp_test_runner.py
-                                """
+                                sh "${env.PYTHON} atp_test_runner.py"
                             } catch (err) {
                                 testPassed = false
-                                // still fail the stage
                                 throw err
                             } finally {
                                 withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
                                     def state = testPassed ? "success" : "failure"
                                     def desc = testPassed ? "ATP tests passed" : "ATP tests failed"
                                     def commitSha = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+
+                                    echo "DEBUG: GitHub token is set (first 4 chars): ${GITHUB_TOKEN.take(4)}"
+                                    echo "DEBUG: Commit SHA being notified: ${commitSha}"
 
                                     sh """
                                         curl -s -X POST \
@@ -81,9 +81,6 @@ pipeline {
                         }
                     }
                 }
-
-
-
             }
         }
     }
