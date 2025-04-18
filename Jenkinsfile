@@ -50,20 +50,38 @@ pipeline {
                         script {
                             def testPassed = true
                             try {
+                                echo "Running ATP tests from atp_test_runner.py"
                                 sh """
-                                    echo "Running ATP tests from atp_test_runner.py"
                                     ${env.PYTHON} atp_test_runner.py
                                 """
                             } catch (err) {
                                 testPassed = false
+                                // still fail the stage
                                 throw err
                             } finally {
-                                publishChecks name: 'ATP Tests',
-                                            conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
+                                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                                    def state = testPassed ? "success" : "failure"
+                                    def desc = testPassed ? "ATP tests passed" : "ATP tests failed"
+                                    def commitSha = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+
+                                    sh """
+                                        curl -s -X POST \
+                                            -H "Authorization: token \$GITHUB_TOKEN" \
+                                            -H "Content-Type: application/json" \
+                                            -d '{
+                                                "state": "$state",
+                                                "context": "ATP Tests",
+                                                "description": "$desc",
+                                                "target_url": "${env.BUILD_URL}"
+                                            }' \
+                                            https://api.github.com/repos/shantanupapal/TestingClient/statuses/$commitSha
+                                    """
+                                }
                             }
                         }
                     }
                 }
+
 
 
             }
