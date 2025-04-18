@@ -51,7 +51,7 @@ pipeline {
                             def testPassed = true
                             try {
                                 echo "Running ATP tests from atp_test_runner.py"
-                                sh "${env.PYTHON} atp_test_runner.py"
+                                sh "${env.PYTHON} atp_test_runner.py --mode fail --env staging"
                             } catch (err) {
                                 testPassed = false
                                 throw err
