@@ -9,7 +9,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 script {
-                    githubNotify context: 'Build', status: 'PENDING', description: 'Installing dependencies...'
+                    echo "Installing Python dependencies"
 
                     def depStatus = sh(script: '''
                         which python3 || true
@@ -18,9 +18,8 @@ pipeline {
                     ''', returnStatus: true)
 
                     if (depStatus == 0) {
-                        githubNotify context: 'Build', status: 'SUCCESS', description: 'Dependencies installed.'
+                        echo "Dependencies installed successfully."
                     } else {
-                        githubNotify context: 'Build', status: 'FAILURE', description: 'Dependency install failed.'
                         echo "WARNING: Dependency installation failed, continuing..."
                     }
                 }
@@ -32,15 +31,15 @@ pipeline {
                 stage('Default Tests') {
                     steps {
                         script {
-                            githubNotify context: 'Build', status: 'PENDING', description: 'Running default tests...'
-
-                            def status = sh(script: "${PYTHON} run_tests.py --test_suite regression --env staging", returnStatus: true)
-
-                            if (status == 0) {
-                                githubNotify context: 'Build', status: 'SUCCESS', description: 'Default tests passed.'
-                            } else {
-                                githubNotify context: 'Build', status: 'FAILURE', description: 'Default tests failed.'
-                                error("Default tests failed")
+                            def testPassed = true
+                            try {
+                                sh "${PYTHON} run_tests.py --test_suite regression --env staging"
+                            } catch (err) {
+                                testPassed = false
+                                throw err
+                            } finally {
+                                publishChecks name: 'Default Tests',
+                                              conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
                             }
                         }
                     }
@@ -60,10 +59,10 @@ pipeline {
                                 """
                             } catch (err) {
                                 testPassed = false
-                                throw err  // to fail the stage
+                                throw err
                             } finally {
                                 publishChecks name: 'ATP Tests',
-                                            conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
+                                              conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
                             }
                         }
                     }
