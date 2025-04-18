@@ -56,13 +56,13 @@ pipeline {
                                 testPassed = false
                                 throw err
                             } finally {
-                                withCredentials([string(credentialsId: 'github-token', variable: 'GITHUB_TOKEN')]) {
+                                withCredentials([string(credentialsId: 'github-status-token', variable: 'GITHUB_TOKEN')]) {
                                     def state = testPassed ? "success" : "failure"
                                     def desc = testPassed ? "ATP tests passed" : "ATP tests failed"
                                     def commitSha = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
 
-                                    echo "DEBUG: GitHub token is set (first 4 chars): ${GITHUB_TOKEN.take(4)}"
-                                    echo "DEBUG: Commit SHA being notified: ${commitSha}"
+                                    echo "DEBUG: GitHub token prefix: ${GITHUB_TOKEN.take(4)}"
+                                    echo "DEBUG: Commit SHA: ${commitSha}"
 
                                     sh """
                                         curl -s -X POST \
@@ -81,6 +81,7 @@ pipeline {
                         }
                     }
                 }
+
             }
         }
     }
