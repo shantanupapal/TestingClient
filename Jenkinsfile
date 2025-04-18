@@ -51,22 +51,23 @@ pipeline {
                             def testPassed = true
                             try {
                                 sh """
-                                    echo "Running ATP sample tests"
+                                    echo "Running ATP tests from atp_test_runner.py"
                                     docker run --rm \
-                                        --mount type=bind,source=\$WORKSPACE/main/tests/atp,target=/tests \
+                                        --mount type=bind,source=\$WORKSPACE,target=/app \
                                         ${env.IMAGE_NAME}:latest \
-                                        sh -c 'cd /tests && pytest --junitxml=atp_results.xml'
+                                        sh -c 'cd /app && python3 atp_test_runner.py'
                                 """
                             } catch (err) {
                                 testPassed = false
                                 throw err
                             } finally {
                                 publishChecks name: 'ATP Tests',
-                                              conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
+                                            conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
                             }
                         }
                     }
                 }
+
             }
         }
     }
