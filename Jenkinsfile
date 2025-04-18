@@ -46,18 +46,24 @@ pipeline {
                     }
                 }
 
-                stage('ATP Tests') {
+                stage('Run ATP Tests') {
                     steps {
                         script {
-                            githubNotify context: 'ATP Tests', status: 'PENDING', description: 'Running ATP tests...'
-
-                            def atpStatus = sh(script: "${PYTHON} atp_test_runner.py --mode full", returnStatus: true)
-
-                            if (atpStatus == 0) {
-                                githubNotify context: 'ATP Tests', status: 'SUCCESS', description: 'ATP tests passed.'
-                            } else {
-                                githubNotify context: 'ATP Tests', status: 'FAILURE', description: 'ATP tests failed.'
-                                error("ATP tests failed")
+                            def testPassed = true
+                            try {
+                                sh """
+                                    echo "Running ATP sample tests"
+                                    docker run --rm \
+                                        --mount type=bind,source=\$WORKSPACE/main/tests/atp,target=/tests \
+                                        ${env.IMAGE_NAME}:latest \
+                                        sh -c 'cd /tests && pytest --junitxml=atp_results.xml'
+                                """
+                            } catch (err) {
+                                testPassed = false
+                                throw err  // to fail the stage
+                            } finally {
+                                publishChecks name: 'ATP Tests',
+                                            conclusion: testPassed ? 'SUCCESS' : 'FAILURE'
                             }
                         }
                     }
