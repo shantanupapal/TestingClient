@@ -52,10 +52,7 @@ pipeline {
                             try {
                                 sh """
                                     echo "Running ATP tests from atp_test_runner.py"
-                                    docker run --rm \
-                                        --mount type=bind,source=\$WORKSPACE,target=/app \
-                                        ${env.IMAGE_NAME}:latest \
-                                        sh -c 'cd /app && python3 atp_test_runner.py'
+                                    ${env.PYTHON} atp_test_runner.py
                                 """
                             } catch (err) {
                                 testPassed = false
@@ -67,6 +64,7 @@ pipeline {
                         }
                     }
                 }
+
 
             }
         }
